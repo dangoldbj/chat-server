@@ -7,18 +7,22 @@ use tokio::{
 async fn main() {
     let listner = TcpListener::bind("localhost:8080").await.unwrap();
 
-    let (mut socket, _addr) = listner.accept().await.unwrap();
-    let (reader, mut writer) = socket.split();
-    let mut reader = BufReader::new(reader);
-    let mut line = String::new();
-
     loop {
-        let bytes_read = reader.read_line(&mut line).await.unwrap();
-        if bytes_read == 0 {
-            break;
-        }
+        let (mut socket, _addr) = listner.accept().await.unwrap();
+        tokio::spawn(async move {
+            let (reader, mut writer) = socket.split();
+            let mut reader = BufReader::new(reader);
+            let mut line = String::new();
 
-        writer.write_all(line.as_bytes()).await.unwrap();
-        line.clear();
+            loop {
+                let bytes_read = reader.read_line(&mut line).await.unwrap();
+                if bytes_read == 0 {
+                    break;
+                }
+
+                writer.write_all(line.as_bytes()).await.unwrap();
+                line.clear();
+            }
+        });
     }
 }
